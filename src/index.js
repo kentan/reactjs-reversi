@@ -33,7 +33,7 @@ var BoardView = React.createClass({displayName: 'BoardView',
              React.DOM.div({className: "board", tabIndex:"2",onClick:this.handleOnClick},
              cells,
              tiles),
-             <InfoView playerId={this.state.board.playerId}/>
+             <InfoView playerId={this.state.board.playerId} passed={this.state.board.pass}/>
          ));
   }
 });
@@ -60,11 +60,12 @@ var InfoView = React.createClass({displayName: 'InfoView',
       var playerId = this.props.playerId;
       var tileColor = playerId == 1 ? 'blackTile' : 'whiteTile';
       var classes = tileColor;
-
+      var passedMessage = this.props.passed ? "PASSED" : "";
       return (
           React.DOM.div({className:"info"},
             React.DOM.p(null,"You are "),
-            React.DOM.div({className: classes}, "")
+            React.DOM.div({className: classes}, ""),
+            React.DOM.p(null,passedMessage)
           )
        );
   }                         

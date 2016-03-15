@@ -7,7 +7,7 @@ var Tile = function (value, row, column) {
     
 };
 
-Tile.id = 0;
+Tile.id = 0;//todo need this?
 
 var Board = function () {
 
@@ -26,6 +26,7 @@ var Board = function () {
     this.won = false;
     this.playerId = 1;
     this.needFlip = this.initTwoDimensionArray(Board.size);
+    this.pass = false;
 };
 
 
@@ -35,7 +36,7 @@ Board.prototype.flipTiles = function(){
     for(var i = 0; i < Board.size; i++){
         for(var j = 0; j < Board.size; j++){
             if(this.needFlip[i][j]){
-                this.cells[i][j] = new Tile(-1 * this.playerId,i,j);
+                this.cells[i][j] = new Tile(this.playerId,i,j);
             }
         }
     }
@@ -43,12 +44,16 @@ Board.prototype.flipTiles = function(){
     
 }
 Board.prototype.putTile = function(id){
-    if(this.isPuttable(id)){
+    if(this.isPuttable(id,this.playerId)){
         var row = Math.floor(id / Board.size);
         var column = id % Board.size;
         this.cells[row][column] = new Tile(this.playerId,row,column);
-        this.playerId *= (-1);
+        
         this.flipTiles();
+        if(!this.isPass(this.playerId * ( -1))){
+            this.playerId *= (-1);
+        }
+        
     }
     return this;
 }
@@ -78,36 +83,8 @@ Board.prototype.mergeArray = function(array1, array2){
     }
     return result;
 }
-//Board.prototype.isPuttableHorizontal = function(row,column,direction){
-//    if(direction == "right" && column == Board.size - 1) return false;
-//    if(direction == "left" && column == 0) return false;
-//    
-//    var offset = direction == "right" ? 1 : -1;
-//    
-//    if(this.cells[row][column + offset].value == 0){
-//        return false;
-//    }
-//    if(this.cells[row][column + offset].value == this.playerId){
-//        return false;
-//    }
-//    var index = column + offset;
-//    var needFlipTmp = this.initTwoDimensionArray(Board.size);
-//    while((index < Board.size && index >= 0) && 
-//          this.cells[row][index].value == (-1 * this.playerId)){
-//        needFlipTmp[row][index] = true;  
-//        index += offset;
-//        
-//    }
-//    if(this.cells[row][index].value == this.playerId){
-//        this.needFlip = this.mergeArray(this.needFlip,needFlipTmp);
-//        return true;
-//    }else{        
-//        return false;
-//    }
-//}
 
-
-Board.prototype.isPuttableInternal = function(row,column,rowDirection,columnDirection){
+Board.prototype.isPuttableInternal = function(playerId,row,column,rowDirection,columnDirection){
     var rowMove = 0;
     var columnMove = 0;
     if(rowDirection == "up"){
@@ -141,14 +118,14 @@ Board.prototype.isPuttableInternal = function(row,column,rowDirection,columnDire
     if(this.cells[row + rowMove][column + columnMove].value == 0){
         return false;
     }
-    if(this.cells[row + rowMove][column + columnMove].value == this.playerId){
+    if(this.cells[row + rowMove][column + columnMove].value == playerId){
         return false;
     }
     var rowIndex = row + rowMove;
     var columnIndex = column + columnMove;
     var needFlipTmp = this.initTwoDimensionArray(Board.size);
 
-    while(this.cells[rowIndex][columnIndex].value == (-1 * this.playerId)){
+    while(this.cells[rowIndex][columnIndex].value == (-1 * playerId)){
         needFlipTmp[rowIndex][columnIndex] = true;   
         rowIndex += rowMove;
         columnIndex += columnMove;
@@ -159,7 +136,7 @@ Board.prototype.isPuttableInternal = function(row,column,rowDirection,columnDire
             return false;
         }
     }
-    if(this.cells[rowIndex][columnIndex].value == this.playerId){
+    if(this.cells[rowIndex][columnIndex].value == playerId){
         this.needFlip = this.mergeArray(this.needFlip,needFlipTmp);
         return true;
     }else{
@@ -168,49 +145,38 @@ Board.prototype.isPuttableInternal = function(row,column,rowDirection,columnDire
 
 }
 
-//Board.prototype.isPuttableVertical = function(row,column,direction){
-//    if(row == 0 && direction == "up")  return false;
-//    if(row == Board.size - 1 && direction == "down") return false;
-//    
-//    var offset = direction == "down" ? 1 : -1;
-//    if(this.cells[row + offset][column].value == 0){
-//        return false;
-//    }
-//    if(this.cells[row + offset][column].value == this.playerId){
-//        return false;
-//    }
-//    var index = row + offset;
-//    var needFlipTmp = this.initTwoDimensionArray(Board.size);
-//    while(index >= 0 && 
-//          this.cells[index][column].value == (-1 * this.playerId)){
-//        needFlipTmp[index][column] = true;   
-//        index += offset;
-//    }
-//    
-//    if(this.cells[index][column].value == this.playerId){
-//        this.needFlip = this.mergeArray(this.needFlip,needFlipTmp);
-//        return true;
-//    }else{
-//        return false;
-//    }
-//
-//}
 
+Board.prototype.isPuttable = function(tileId,playerId){
+    var row = Math.floor(tileId / Board.size);
+    var column = tileId % Board.size;
 
-Board.prototype.isPuttable = function(id){
-    var row = Math.floor(id / Board.size);
-    var column = id % Board.size;
-
-    var result = this.isPuttableInternal(row,column,"none","right");
-    result |= this.isPuttableInternal(row,column,"none","left");
-    result |= this.isPuttableInternal(row,column,"up","none");
-    result |= this.isPuttableInternal(row,column,"down","none");
-    result |= this.isPuttableInternal(row,column,"up","right");
-    result |= this.isPuttableInternal(row,column,"down","right");
-    result |= this.isPuttableInternal(row,column,"up","left");
-    result |= this.isPuttableInternal(row,column,"down","left");
+    var result = this.isPuttableInternal(playerId,row,column,"none","right");
+    result |= this.isPuttableInternal(playerId,row,column,"none","left");
+    result |= this.isPuttableInternal(playerId,row,column,"up","none");
+    result |= this.isPuttableInternal(playerId,row,column,"down","none");
+    result |= this.isPuttableInternal(playerId,row,column,"up","right");
+    result |= this.isPuttableInternal(playerId,row,column,"down","right");
+    result |= this.isPuttableInternal(playerId,row,column,"up","left");
+    result |= this.isPuttableInternal(playerId,row,column,"down","left");
     
     return result;
 }
 
 
+Board.prototype.isPass = function(playerId){
+    this.pass = false;
+    for(var i = 0; i < Board.size; i++){
+        for(var j = 0; j < Board.size; j++){
+            if(this.cells[i][j].value == 0 ){
+                if(this.isPuttable(this.cells[i][j].id,playerId)){  
+                    this.pass = false;
+                    this.needFlip = this.initTwoDimensionArray(Board.size);
+                    return false;
+                }
+            }
+        }
+    }
+    this.needFlip = this.initTwoDimensionArray(Board.size);
+    this.pass = true;
+    return true;
+}
